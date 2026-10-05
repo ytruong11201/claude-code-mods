@@ -2,6 +2,8 @@
 
 A Claude Code mod that turns every subagent you spawn into a 16×16 pixel hero in a band above the prompt.
 
+**[▶ Try the live demo](https://ytruong11201.github.io/claude-code-mods/agent-party/)**. It draws the same sprites and speech bubbles the mod draws in your terminal. The browser copy lives in [`docs/agent-party/`](../../docs/agent-party/index.html); rebuild it with `demo/build.sh ../../docs/agent-party/index.html`.
+
 ```
  ▄██▄        ╭────────────────────────────────╮
  █▀▀█        │ Plan the product search page   │

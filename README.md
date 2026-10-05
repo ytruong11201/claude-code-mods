@@ -8,6 +8,8 @@
 
 ![The fantasy party cast in every pose, on a dark and a light terminal](assets/party-cast.png)
 
+**[▶ Play with agent-party in your browser](https://ytruong11201.github.io/claude-code-mods/agent-party/)** before you install it: watch a scripted quest, spawn any hero, switch casts and try the voice.
+
 ## Install
 
 Mods need Claude Code v2.1.287 or later (`claude --version`).
@@ -22,7 +24,7 @@ Or from your shell:
 
 ```bash
 claude plugin marketplace add ytruong11201/claude-code-mods
-claude plugin install agent-party@ytruong11201-mods
+claude plugin install agent-party@nyt-mods
 ```
 
 Run `/reload-plugins` in an open session, or start a new one. `/plugin` then lists `1 mod active · agent-party`.
@@ -30,7 +32,7 @@ Run `/reload-plugins` in an open session, or start a new one. `/plugin` then lis
 ## Update
 
 ```bash
-claude plugin update agent-party@ytruong11201-mods
+claude plugin update agent-party@nyt-mods
 ```
 
 ## Trust
