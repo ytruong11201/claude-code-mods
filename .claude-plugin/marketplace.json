@@ -1,0 +1,12 @@
+{
+  "name": "ytruong11201-mods",
+  "description": "Claude Code mods by ytruong11201",
+  "owner": { "name": "ytruong11201", "url": "https://github.com/ytruong11201" },
+  "plugins": [
+    {
+      "name": "agent-party",
+      "source": "./plugins/agent-party",
+      "description": "Running subagents as 16×16 pixel heroes above the prompt, with a voice and two casts"
+    }
+  ]
+}

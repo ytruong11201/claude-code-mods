@@ -1,0 +1,11 @@
+# Written by Claude Code each time it loads a mod from a folder
+.claude-plugin/types/
+plugins/*/.claude-plugin/types/
+plugins/*/tsconfig.json
+
+# Built demo pages (demo/build.sh output)
+plugins/*/demo/*.html
+!plugins/*/demo/template.html
+
+node_modules/
+.DS_Store

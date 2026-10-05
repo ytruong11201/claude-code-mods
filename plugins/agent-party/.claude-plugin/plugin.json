@@ -1,0 +1,12 @@
+{
+  "name": "agent-party",
+  "displayName": "Agent Party",
+  "version": "0.1.0",
+  "description": "Your running subagents as 16×16 pixel heroes above the prompt: their task, what they are doing, time, tokens, and a voice that tells their status",
+  "author": { "name": "ytruong11201", "url": "https://github.com/ytruong11201" },
+  "homepage": "https://github.com/ytruong11201/claude-code-mods/tree/main/plugins/agent-party",
+  "repository": "https://github.com/ytruong11201/claude-code-mods",
+  "license": "MIT",
+  "keywords": ["mod", "subagents", "pixel-art", "fun"],
+  "types": "./types/index.d.ts"
+}

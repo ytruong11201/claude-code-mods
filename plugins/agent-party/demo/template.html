@@ -1,0 +1,375 @@
+<title>Agent Party</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&family=JetBrains+Mono:wght@400;700&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+  /* Layout: one column — title, the live terminal, then the party roster. A deliberate single dark look:
+     the subject is a terminal at night and an arcade cabinet, so there is no light variant. */
+  :root {
+    --bg: #110f19;
+    --panel: #1a1726;
+    --term: #0d0c13;
+    --line: #2c2840;
+    --fg: #ece7f6;
+    --dim: #8c85a6;
+    --gold: #feae34;
+    --ok: #63c74d;
+    --bad: #e43b44;
+    --display: 'Silkscreen', 'Courier New', monospace;
+    --mono: 'JetBrains Mono', ui-monospace, 'DejaVu Sans Mono', monospace;
+    --body: 'IBM Plex Sans', system-ui, sans-serif;
+    --cell-h: 17px;
+    color-scheme: dark;
+  }
+  body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--body); }
+  main { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 32px 64px; display: grid; gap: 40px; }
+  h1, h2 { font-family: var(--display); font-weight: 400; letter-spacing: 0.02em; margin: 0; text-wrap: balance; }
+  h1 { font-size: clamp(28px, 6vw, 48px); color: var(--gold); line-height: 1.1; }
+  h2 { font-size: 20px; }
+  p { margin: 0; max-width: 65ch; }
+  .lede { color: var(--dim); }
+  header { display: grid; gap: 12px; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  button, select {
+    font: 13px var(--mono); color: var(--fg); background: var(--panel); border: 1px solid var(--line);
+    border-radius: 4px; padding: 7px 12px; cursor: pointer;
+  }
+  button:hover, select:hover { border-color: var(--dim); }
+  button:focus-visible, select:focus-visible, .hero:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  button.primary { background: var(--gold); color: #1a1222; border-color: var(--gold); font-weight: 700; }
+  button[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); }
+  .speed { color: var(--dim); font: 12px var(--mono); }
+
+  /* the terminal mock: one character cell is 1ch × var(--cell-h); a sprite is 16 × 8 cells */
+  .window { border: 1px solid var(--line); border-radius: 10px; background: var(--term); overflow: hidden; }
+  .chrome { display: flex; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  .chrome i { width: 11px; height: 11px; border-radius: 50%; background: var(--line); }
+  .chrome span { margin-left: 8px; font: 12px var(--mono); color: var(--dim); }
+  .screen { overflow-x: auto; }
+  .tty { font: 14px/var(--cell-h) var(--mono); padding: 14px 16px; min-width: 760px; white-space: pre; }
+  .tty .d { color: var(--dim); }
+  .tty .b { font-weight: 700; }
+  .transcript { min-height: calc(var(--cell-h) * 6); }
+  .band { display: flex; flex-wrap: wrap; column-gap: 3ch; row-gap: var(--cell-h); min-height: calc(var(--cell-h) * 8); padding-block: var(--cell-h); }
+  .band:empty::before { content: 'No agents running. Replay the quest or spawn one.'; color: var(--dim); }
+  .card { display: flex; gap: 1ch; animation: walk-in 0.4s steps(4) both; }
+  .card canvas { width: 16ch; height: calc(var(--cell-h) * 8); image-rendering: pixelated; }
+  .prompt { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding-block: 2px; }
+  @keyframes walk-in { from { transform: translateX(-2ch); opacity: 0.2; } to { transform: none; opacity: 1; } }
+
+  .roster-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; justify-content: space-between; }
+  .roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .hero {
+    display: grid; justify-items: center; gap: 6px; padding: 14px 10px 12px; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 6px; cursor: pointer; text-align: center; color: inherit; font: inherit;
+  }
+  .hero:hover { border-color: var(--hero); }
+  .hero canvas { width: 96px; height: 96px; image-rendering: pixelated; }
+  .hero b { font-family: var(--display); font-weight: 400; color: var(--hero); font-size: 14px; }
+  .hero code { font: 12px var(--mono); color: var(--dim); }
+  .hero small { color: var(--dim); font-size: 12px; line-height: 1.35; }
+
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px 24px; }
+  .facts div { display: grid; gap: 4px; }
+  .facts dt { font: 12px var(--mono); color: var(--gold); letter-spacing: 0.06em; text-transform: uppercase; }
+  .facts dd { margin: 0; color: var(--dim); }
+  .facts code, p code { font: 13px var(--mono); color: var(--fg); }
+  @media (prefers-reduced-motion: reduce) { .card { animation: none; } }
+</style>
+
+<main>
+  <header>
+    <h1>Agent Party</h1>
+    <p class="lede">A Claude Code mod. Every subagent you spawn joins your party as a 16×16 RPG hero above the prompt. Each hero shows its quest, what it is doing right now, how long it has worked and how many tokens it has used. The voice reads out who started and who finished.</p>
+    <div class="controls">
+      <button class="primary" id="replay" type="button">▶ Replay quest</button>
+      <select id="pick" aria-label="Agent type to spawn"></select>
+      <button id="spawn" type="button">Spawn</button>
+      <button id="voice" type="button" aria-pressed="false">🔈 Voice off</button>
+      <span class="speed">Demo clock runs at 20× speed</span>
+    </div>
+    <div class="controls" role="group" aria-label="Cast">
+      <span class="speed">Cast</span>
+      <button type="button" data-theme-pick="party" aria-pressed="true">Fantasy party</button>
+      <button type="button" data-theme-pick="wizarding" aria-pressed="false">Wizarding school</button>
+      <span class="speed">In the terminal: <code>/agent-theme wizarding</code></span>
+    </div>
+  </header>
+
+  <section class="window" aria-label="Claude Code terminal with the agent band">
+    <div class="chrome"><i></i><i></i><i></i><span>claude — ~/code/acme-shop</span></div>
+    <div class="screen">
+      <div class="tty">
+        <div class="transcript" id="transcript"></div>
+        <div class="band" id="band" aria-live="polite"></div>
+        <div class="prompt">❯ <span class="d">ok, wait for the plan, then review</span></div>
+        <div><span class="d">  ◆ Opus 5.5 · ▣ plans/add-search · ⎇ feat/search</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:grid;gap:16px" aria-labelledby="roster-title">
+    <div class="roster-head">
+      <h2 id="roster-title">The party</h2>
+      <div class="controls" role="group" aria-label="Pose">
+        <button type="button" data-pose="work" aria-pressed="true">Working</button>
+        <button type="button" data-pose="spawn" aria-pressed="false">Spawn</button>
+        <button type="button" data-pose="done" aria-pressed="false">Victory</button>
+        <button type="button" data-pose="failed" aria-pressed="false">KO</button>
+      </div>
+    </div>
+    <p class="lede">One class per agent type. Click a hero to send it into the terminal above.</p>
+    <div class="roster" id="roster"></div>
+  </section>
+
+  <section style="display:grid;gap:16px" aria-labelledby="how-title">
+    <h2 id="how-title">How it works in the terminal</h2>
+    <dl class="facts">
+      <div><dt>Pixels</dt><dd>One terminal cell is two pixels: an upper half block <code>▀</code> painted with the top pixel and backed by the bottom one. A hero is 16 columns × 8 rows.</dd></div>
+      <div><dt>Animation</dt><dd>4 fps. The work loop steps every 250 ms and the idle bob every 500 ms. A blink comes every 4 s, a poof on spawn, a victory hop when done and a grey KO when stopped.</dd></div>
+      <div><dt>Hooks</dt><dd><code>agent.spawn</code> brings a hero on stage, <code>tool.call</code> fills the bubble, <code>turn.step</code> counts tokens and <code>turn.complete</code> ends the quest.</dd></div>
+      <div><dt>Voice</dt><dd>Says who started and who finished, plus at most one status line per agent every 45 s. Turn it off with <code>/agent-voice</code>.</dd></div>
+    </dl>
+  </section>
+</main>
+
+<script>/*PARTY_BUNDLE*/</script>
+<script>
+  const { frame, heroOf: heroIn, HEROES, describe, elapsed, tokens, spoken, TICK_MS } = Party
+  let theme = 'party'
+  const heroOf = type => heroIn(type, theme)
+  const SPEED = 20
+  const LINGER = 6000
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
+  const TYPES = Object.keys(HEROES).filter(type => type !== 'Plan')
+  const ROLE = {
+    planner: 'Plans the quest', 'backend-developer': 'Forges server code', 'frontend-developer': 'Plays the UI',
+    'fullstack-developer': 'Guards both ends', tester: 'Brews test runs', 'code-reviewer': 'Inspects every diff',
+    'security-auditor': 'Finds weak spots', 'git-manager': 'Delivers commits', researcher: 'Reads the old books',
+    Explore: 'Tracks code through the repo', scout: 'Spots the right files', 'docs-manager': 'Keeps the records',
+    'general-purpose': 'Takes any job',
+  }
+  const ROLE_WIZARDING = {
+    planner: 'Plans the term', 'backend-developer': 'Keeps the grounds running', 'frontend-developer': 'Makes the UI sparkle',
+    'fullstack-developer': 'Flies end to end', tester: 'Brews test runs', 'code-reviewer': 'Marks every diff',
+    'security-auditor': 'Wards off weak spots', 'git-manager': 'Delivers commits', researcher: 'Lives in the library',
+    Explore: 'Walks the castle by night', scout: 'Drifts through walls to find files', 'docs-manager': 'Remembers everything',
+    'general-purpose': 'Learns any job',
+  }
+
+  const draw = (canvas, grid) => {
+    const ctx = canvas.getContext('2d')
+    ctx.clearRect(0, 0, 16, 16)
+    grid.forEach((row, y) => row.forEach((px, x) => {
+      if (px === null) return
+      ctx.fillStyle = '#' + px.toString(16).padStart(6, '0')
+      ctx.fillRect(x, y, 1, 1)
+    }))
+  }
+  const sprite = (cls = '') => Object.assign(document.createElement('canvas'), { width: 16, height: 16, className: cls })
+  const esc = text => String(text).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[ch])
+  const fit = (text, n) => (text.length > n ? text.slice(0, n - 1) + '…' : text.padEnd(n))
+
+  // ---- voice (Web Speech API; the mod uses the system synthesizer)
+  let voiceOn = false
+  const say = text => {
+    if (!voiceOn || !('speechSynthesis' in window)) return
+    try { speechSynthesis.speak(new SpeechSynthesisUtterance(text)) } catch { /* no voice in this browser */ }
+  }
+  const voiceButton = document.getElementById('voice')
+  voiceButton.addEventListener('click', () => {
+    voiceOn = !voiceOn
+    voiceButton.setAttribute('aria-pressed', String(voiceOn))
+    voiceButton.textContent = voiceOn ? '🔊 Voice on' : '🔈 Voice off'
+    if (!voiceOn) try { speechSynthesis.cancel() } catch {}
+  })
+
+  // ---- the band: agents, as the mod keeps them
+  const agents = []
+  const lastSpoken = new Map()
+  const transcript = document.getElementById('transcript')
+  const log = html => {
+    transcript.insertAdjacentHTML('beforeend', `<div>${html}</div>`)
+    while (transcript.children.length > 6) transcript.firstChild.remove()
+  }
+  let nextId = 1
+  const spawn = (type, title) => {
+    const agent = { id: nextId++, type, title, activity: 'Getting started…', startedAt: performance.now(), context: 0, calls: 0, status: 'running' }
+    agents.push(agent)
+    log(`<span style="color:${heroOf(type).colors.C}">●</span> <span class="b">${esc(type)}</span>(${esc(title)})\n  <span class="d">⎿ Backgrounded agent (↓ to manage · ctrl+o to expand)</span>`)
+    say(`${spoken(type)} started: ${title}`)
+    return agent
+  }
+  const act = (agent, tool, input) => {
+    if (agent.status !== 'running') return
+    agent.activity = describe(tool, input)
+    agent.calls += 1
+    agent.context += 6000 + Math.round(Math.random() * 14000)
+    const now = performance.now()
+    if (now - (lastSpoken.get(agent.id) ?? 0) > 45000 / SPEED) {
+      lastSpoken.set(agent.id, now)
+      say(`${spoken(agent.type)}: ${agent.activity}`)
+    }
+  }
+  const finish = (agent, isFailed = false) => {
+    if (agent.status !== 'running') return
+    agent.status = isFailed ? 'failed' : 'done'
+    agent.activity = isFailed ? 'Stopped ✗' : 'Done ✓'
+    agent.endedAt = performance.now()
+    say(`${spoken(agent.type)} ${isFailed ? 'stopped' : 'finished'}: ${agent.title}`)
+  }
+
+  const band = document.getElementById('band')
+  const cards = new Map()
+  const renderBand = now => {
+    const tick = reduced ? 0 : Math.floor(now / TICK_MS)
+    for (let i = agents.length - 1; i >= 0; i--) {
+      if (agents[i].endedAt && now - agents[i].endedAt > LINGER) { cards.get(agents[i].id)?.remove(); cards.delete(agents[i].id); agents.splice(i, 1) }
+    }
+    for (const agent of agents) {
+      let card = cards.get(agent.id)
+      if (!card) {
+        card = document.createElement('div')
+        card.className = 'card'
+        card.append(sprite(), Object.assign(document.createElement('div'), { className: 'text' }))
+        band.append(card)
+        cards.set(agent.id, card)
+      }
+      const hero = heroOf(agent.type)
+      const mode = agent.status === 'running' ? 'work' : agent.status
+      const age = Math.floor((now - agent.startedAt) / TICK_MS)
+      const sinceEnd = agent.endedAt ? Math.floor((now - agent.endedAt) / TICK_MS) : 99
+      draw(card.firstChild, frame(agent.type, mode, tick, reduced ? 99 : age, sinceEnd, theme))
+      const tone = agent.status === 'failed' ? 'var(--bad)' : agent.status === 'done' ? 'var(--ok)' : hero.colors.C
+      const w = 30
+      const bar = '─'.repeat(w + 2)
+      const spent = elapsed(((agent.endedAt ?? now) - agent.startedAt) * SPEED)
+      card.lastChild.innerHTML = [
+        `<span class="b" style="color:${hero.colors.C}">${esc(agent.type)}</span><span class="d"> the ${esc(hero.class)} · Lv ${agent.calls + 1}</span>`,
+        `<span style="color:${tone}">╭${bar}╮</span>`,
+        `<span style="color:${tone}">│</span> <span class="b">${esc(fit(agent.title, w))}</span> <span style="color:${tone}">│</span>`,
+        `<span style="color:${tone}">│</span> <i style="color:${agent.status === 'running' ? 'inherit' : tone}">${esc(fit(agent.activity, w))}</i> <span style="color:${tone}">│</span>`,
+        `<span style="color:${tone}">╰${bar}╯</span>`,
+        `<span class="d"> ⏱ ${spent}${agent.context ? ` · ↓ ${tokens(agent.context)} tokens` : ''}</span>`,
+      ].join('\n')
+    }
+  }
+
+  // ---- the scripted quest: a planner leads, helpers join and leave (times in demo seconds)
+  const QUEST = [
+    [0.5, () => log('<span class="d">❯</span> plan the product search page, then review it')],
+    [1.2, () => (q.planner = spawn('planner', 'Plan the product search page'))],
+    [2.2, () => act(q.planner, 'Read', { file_path: 'docs/search-spec.md' })],
+    [3.0, () => (q.explore = spawn('Explore', 'Find search callers'))],
+    [3.8, () => act(q.explore, 'Grep', { pattern: 'searchProducts' })],
+    [4.4, () => act(q.planner, 'Read', { file_path: 'src/services/product.service.ts' })],
+    [5.0, () => (q.research = spawn('researcher', 'Compare map libraries'))],
+    [5.8, () => act(q.research, 'WebSearch', { query: 'leaflet vs maplibre nextjs' })],
+    [6.4, () => act(q.explore, 'Read', { file_path: 'src/pages/search/index.tsx' })],
+    [7.4, () => act(q.planner, 'Write', { file_path: 'plans/add-search/phase-01-api.md' })],
+    [8.0, () => finish(q.explore)],
+    [8.6, () => act(q.research, 'WebFetch', { url: 'https://maplibre.org/maplibre-gl-js/docs/' })],
+    [9.4, () => (q.tester = spawn('tester', 'Run vitest on packages/shared'))],
+    [10.2, () => act(q.tester, 'Bash', { description: 'Run the shared unit tests' })],
+    [10.8, () => act(q.planner, 'Write', { file_path: 'plans/add-search/phase-02-ui.md' })],
+    [11.6, () => (q.security = spawn('security-auditor', 'Check search input handling'))],
+    [12.4, () => act(q.security, 'Grep', { pattern: 'dangerouslySetInnerHTML' })],
+    [13.0, () => finish(q.research)],
+    [13.6, () => act(q.tester, 'Read', { file_path: 'tests/product.test.ts' })],
+    [14.4, () => finish(q.tester, true)],
+    [15.0, () => act(q.planner, 'Edit', { file_path: 'plans/add-search/plan.md' })],
+    [15.6, () => act(q.security, 'Read', { file_path: 'src/api/search.ts' })],
+    [16.6, () => finish(q.planner)],
+    [17.2, () => (q.review = spawn('code-reviewer', 'Review the search plan'))],
+    [18.0, () => act(q.review, 'Read', { file_path: 'plans/add-search/plan.md' })],
+    [19.0, () => finish(q.security)],
+    [19.8, () => act(q.review, 'mcp__postgres__query', {})],
+    [21.0, () => (q.git = spawn('git-manager', 'Commit the plan'))],
+    [21.6, () => act(q.git, 'Bash', { description: 'Stage the plan files' })],
+    [22.4, () => finish(q.review)],
+    [23.4, () => finish(q.git)],
+  ]
+  const q = {}
+  let questStart = null
+  let step = 0
+  const replay = () => {
+    agents.splice(0)
+    cards.forEach(card => card.remove())
+    cards.clear()
+    transcript.innerHTML = ''
+    questStart = performance.now()
+    step = 0
+  }
+  document.getElementById('replay').addEventListener('click', replay)
+
+  const pick = document.getElementById('pick')
+  const TASKS = ['Investigate the 503 on staging', 'Map the sync flow', 'Draft the release notes', 'Audit the auth middleware', 'Trace a cross-repo bug']
+  const TOOLS = [['Read', { file_path: 'src/app.controller.ts' }], ['Grep', { pattern: 'git_hash' }], ['Bash', { description: 'Run the build' }], ['Edit', { file_path: 'docs/deployment-guide.md' }]]
+  const freeSpawn = type => {
+    const agent = spawn(type, TASKS[Math.floor(Math.random() * TASKS.length)])
+    TOOLS.forEach(([tool, input], i) => setTimeout(() => act(agent, tool, input), 900 + i * 1100))
+    setTimeout(() => finish(agent), 900 + TOOLS.length * 1100 + 600)
+  }
+  document.getElementById('spawn').addEventListener('click', () => freeSpawn(pick.value))
+
+  // ---- roster
+  const roster = document.getElementById('roster')
+  let pose = 'work'
+  let poseSince = performance.now()
+  let heroCanvases = []
+  const buildRoster = () => {
+  roster.innerHTML = ''
+  heroCanvases = TYPES.map(type => {
+    const hero = heroOf(type)
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'hero'
+    button.style.setProperty('--hero', hero.colors.C)
+    button.setAttribute('aria-label', `Spawn ${type}, the ${hero.class}`)
+    const canvas = sprite()
+    button.append(canvas)
+    const role = (theme === 'wizarding' ? ROLE_WIZARDING : ROLE)[type] ?? ''
+    button.insertAdjacentHTML('beforeend', `<b>${esc(hero.class)}</b><code>${esc(type)}</code><small>${esc(role)}</small>`)
+    button.addEventListener('click', () => freeSpawn(type))
+    roster.append(button)
+    return [type, canvas]
+  })
+  pick.innerHTML = TYPES.map(type => `<option value="${type}">${type} — ${heroOf(type).class}</option>`).join('')
+  }
+  buildRoster()
+  document.querySelectorAll('[data-theme-pick]').forEach(button => button.addEventListener('click', () => {
+    theme = button.dataset.themePick
+    document.querySelectorAll('[data-theme-pick]').forEach(other => other.setAttribute('aria-pressed', String(other === button)))
+    buildRoster()
+  }))
+  document.querySelectorAll('[data-pose]').forEach(button => button.addEventListener('click', () => {
+    pose = button.dataset.pose
+    poseSince = performance.now()
+    document.querySelectorAll('[data-pose]').forEach(other => other.setAttribute('aria-pressed', String(other === button)))
+  }))
+  const renderRoster = now => {
+    const tick = reduced ? 0 : Math.floor(now / TICK_MS)
+    const since = Math.floor((now - poseSince) / TICK_MS)
+    for (const [type, canvas] of heroCanvases) {
+      // spawn pose loops the 4-frame poof every 2 s so it can be watched
+      const grid = pose === 'spawn' ? frame(type, 'work', tick, since % 8, 99, theme)
+        : pose === 'done' ? frame(type, 'done', tick, 99, since % 6 === 0 ? 0 : 1, theme)
+        : frame(type, pose, tick, 99, 99, theme)
+      draw(canvas, grid)
+    }
+  }
+
+  // ---- one clock for everything
+  const loop = now => {
+    if (questStart !== null) {
+      const t = ((now - questStart) / 1000) * (SPEED / 20) // quest times are already demo seconds
+      while (step < QUEST.length && QUEST[step][0] <= t) QUEST[step++][1]()
+    }
+    renderBand(now)
+    renderRoster(now)
+    requestAnimationFrame(loop)
+  }
+  replay()
+  requestAnimationFrame(loop)
+</script>
