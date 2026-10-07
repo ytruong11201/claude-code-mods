@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Agent Party</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -55,6 +56,8 @@
   .band:empty::before { content: 'No agents running. Replay the quest or spawn one.'; color: var(--dim); }
   .card { display: flex; gap: 1ch; animation: walk-in 0.4s steps(4) both; }
   .card canvas { width: 16ch; height: calc(var(--cell-h) * 8); image-rendering: pixelated; }
+  [data-pixels="12"] .card canvas { width: 12ch; height: calc(var(--cell-h) * 6); }
+  [data-pixels="8"] .card canvas { width: 8ch; height: calc(var(--cell-h) * 4); }
   .prompt { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding-block: 2px; }
   @keyframes walk-in { from { transform: translateX(-2ch); opacity: 0.2; } to { transform: none; opacity: 1; } }
 
@@ -99,6 +102,17 @@
       <button type="button" data-theme-pick="wizarding" aria-pressed="false">Wizarding school</button>
       <span class="speed">In the terminal: <code>/agent-theme wizarding</code></span>
     </div>
+    <div class="controls" role="group" aria-label="Look">
+      <span class="speed">Size</span>
+      <button type="button" data-size-pick="16" aria-pressed="true">Large 16×16</button>
+      <button type="button" data-size-pick="12" aria-pressed="false">Medium 12×12</button>
+      <button type="button" data-size-pick="8" aria-pressed="false">Small 8×8</button>
+      <span class="speed">Outline</span>
+      <button type="button" data-outline-pick="thin" aria-pressed="true">Thin</button>
+      <button type="button" data-outline-pick="dark" aria-pressed="false">Dark</button>
+      <button type="button" data-outline-pick="none" aria-pressed="false">None</button>
+      <span class="speed">In the terminal: <code>/agent-size medium</code> · <code>/agent-outline dark</code></span>
+    </div>
   </header>
 
   <section class="window" aria-label="Claude Code terminal with the agent band">
@@ -120,6 +134,7 @@
         <button type="button" data-pose="work" aria-pressed="true">Working</button>
         <button type="button" data-pose="spawn" aria-pressed="false">Spawn</button>
         <button type="button" data-pose="done" aria-pressed="false">Victory</button>
+        <button type="button" data-pose="hurt" aria-pressed="false">Hurt</button>
         <button type="button" data-pose="failed" aria-pressed="false">KO</button>
       </div>
     </div>
@@ -152,6 +167,7 @@ claude plugin install agent-party@nyt-mods</pre><button type="button" data-copy=
 <script>
   const { frame, heroOf: heroIn, HEROES, describe, elapsed, tokens, spoken, TICK_MS } = Party
   let theme = 'party'
+  const look = { pixels: 16, outline: 'thin' } // what /agent-size and /agent-outline pick
   const heroOf = type => heroIn(type, theme)
   const SPEED = 20
   const LINGER = 6000
@@ -173,8 +189,9 @@ claude plugin install agent-party@nyt-mods</pre><button type="button" data-copy=
   }
 
   const draw = (canvas, grid) => {
+    if (canvas.width !== grid.length) canvas.width = canvas.height = grid.length
     const ctx = canvas.getContext('2d')
-    ctx.clearRect(0, 0, 16, 16)
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
     grid.forEach((row, y) => row.forEach((px, x) => {
       if (px === null) return
       ctx.fillStyle = '#' + px.toString(16).padStart(6, '0')
@@ -254,7 +271,7 @@ claude plugin install agent-party@nyt-mods</pre><button type="button" data-copy=
       const mode = agent.status === 'running' ? 'work' : agent.status
       const age = Math.floor((now - agent.startedAt) / TICK_MS)
       const sinceEnd = agent.endedAt ? Math.floor((now - agent.endedAt) / TICK_MS) : 99
-      draw(card.firstChild, frame(agent.type, mode, tick, reduced ? 99 : age, sinceEnd, theme))
+      draw(card.firstChild, frame(agent.type, mode, tick, reduced ? 99 : age, sinceEnd, theme, look))
       const tone = agent.status === 'failed' ? 'var(--bad)' : agent.status === 'done' ? 'var(--ok)' : hero.colors.C
       const w = 30
       const bar = '─'.repeat(w + 2)
@@ -357,6 +374,12 @@ claude plugin install agent-party@nyt-mods</pre><button type="button" data-copy=
     document.querySelectorAll('[data-theme-pick]').forEach(other => other.setAttribute('aria-pressed', String(other === button)))
     buildRoster()
   }))
+  const pickOne = (attr, apply) => document.querySelectorAll(`[${attr}]`).forEach(button => button.addEventListener('click', () => {
+    apply(button.getAttribute(attr))
+    document.querySelectorAll(`[${attr}]`).forEach(other => other.setAttribute('aria-pressed', String(other === button)))
+  }))
+  pickOne('data-size-pick', value => { look.pixels = Number(value); document.body.dataset.pixels = value })
+  pickOne('data-outline-pick', value => { look.outline = value })
   document.querySelectorAll('[data-pose]').forEach(button => button.addEventListener('click', () => {
     pose = button.dataset.pose
     poseSince = performance.now()
@@ -367,9 +390,9 @@ claude plugin install agent-party@nyt-mods</pre><button type="button" data-copy=
     const since = Math.floor((now - poseSince) / TICK_MS)
     for (const [type, canvas] of heroCanvases) {
       // spawn pose loops the 4-frame poof every 2 s so it can be watched
-      const grid = pose === 'spawn' ? frame(type, 'work', tick, since % 8, 99, theme)
-        : pose === 'done' ? frame(type, 'done', tick, 99, since % 6 === 0 ? 0 : 1, theme)
-        : frame(type, pose, tick, 99, 99, theme)
+      const grid = pose === 'spawn' ? frame(type, 'work', tick, since % 8, 99, theme, look)
+        : pose === 'done' ? frame(type, 'done', tick, 99, since % 6 === 0 ? 0 : 1, theme, look)
+        : frame(type, pose, tick, 99, 99, theme, look)
       draw(canvas, grid)
     }
   }
