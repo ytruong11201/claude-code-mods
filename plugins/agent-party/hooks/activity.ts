@@ -44,3 +44,18 @@ export const tokens = (n: number): string => (n >= 1000 ? `${(n / 1000).toFixed(
 
 // Spoken name: "code-reviewer" → "code reviewer".
 export const spoken = (type: string): string => type.replace(/[-_]/g, ' ')
+
+// A Bash command that runs a test suite counts as a test run, pass or fail (a failure costs a heart).
+// ponytail: a word match, so `git commit -m "add test"` counts too; parse the command if that misleads.
+const TEST_RUN = /\b(tests?|jest|vitest|pytest|mocha|playwright|rspec|phpunit)\b/i
+export const isTestRun = (command: unknown): boolean => TEST_RUN.test(String(command ?? ''))
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
+
+// What an agent brought back: "4 files · 2 test runs · 1 error", or '' for a quest with nothing to show.
+export const loot = (agent: { files: string[]; tests: number; errors: number }): string =>
+  [
+    agent.files.length && plural(agent.files.length, 'file'),
+    agent.tests && plural(agent.tests, 'test run'),
+    agent.errors && plural(agent.errors, 'error'),
+  ].filter(Boolean).join(' · ')

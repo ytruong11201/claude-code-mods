@@ -79,8 +79,8 @@ export const HEROES: Record<string, Hero> = {
   },
   'security-auditor': {
     class: 'Rogue',
-    colors: { H: '#7a2048', C: '#c8323c', D: '#7a2048', L: '#262b44', F: '#181425', T: '#c8323c', U: '#7a2048', A: '#262b44', G: '#f4f4f4' },
-    hat: ['', '', '......TTT.......', '.....TTTTTT.....', '....TTTTTTTU....', '....TAAAAAAU....', '....TAWAAWAU....', '....TAAAAAAU....', '.....UUUUUU.....'],
+    colors: { H: '#7a2048', C: '#c8323c', D: '#7a2048', L: '#262b44', F: '#181425', T: '#c8323c', U: '#7a2048', A: '#262b44', G: '#f4f4f4', e: '#f4f4f4' },
+    hat: ['', '', '......TTT.......', '.....TTTTTT.....', '....TTTTTTTU....', '....TAAAAAAU....', '....TAeAAeAU....', '....TAAAAAAU....', '.....UUUUUU.....'],
     props: [
       [at(8, 14, 'M'), at(9, 13, 'M'), at(10, 12, 'Q')],
       [at(6, 14, 'G'), at(7, 14, 'M'), at(8, 13, 'M'), at(9, 12, 'Q')],
@@ -144,12 +144,31 @@ export const HEROES: Record<string, Hero> = {
     ],
   },
 }
-HEROES.Plan = HEROES.planner!
 
 export const THEMES: Theme[] = ['party', 'wizarding']
 const CASTS: Record<Theme, Record<string, Hero>> = { party: HEROES, wizarding: WIZARDING }
 
+// An agent type no cast names ("ck:api-dev", "superpowers:code-reviewer") gets the role its name hints at.
+// First match wins, so the narrow words come before the broad ones.
+const HINTS: [RegExp, string][] = [
+  [/secur|audit|pentest|vuln/i, 'security-auditor'],
+  [/review/i, 'code-reviewer'],
+  [/test|qa\b|e2e/i, 'tester'],
+  [/full.?stack/i, 'fullstack-developer'],
+  [/front|\bui\b|ux|css|react|vue|design/i, 'frontend-developer'],
+  [/back|api|server|database|\bdb\b|sql/i, 'backend-developer'],
+  [/plan|architect|brainstorm/i, 'planner'],
+  [/git|commit|release|deploy|ship/i, 'git-manager'],
+  [/research|analy/i, 'researcher'],
+  [/explor|search|find/i, 'Explore'],
+  [/scout|recon/i, 'scout'],
+  [/doc|writ/i, 'docs-manager'],
+]
+
+export const roleOf = (type: string): string =>
+  type in HEROES ? type : (HINTS.find(([hint]) => hint.test(type))?.[1] ?? 'general-purpose')
+
 export const heroOf = (type: string, theme: Theme = 'party'): Hero => {
   const cast = CASTS[theme] ?? HEROES
-  return cast[type] ?? cast['general-purpose']!
+  return cast[type] ?? cast[roleOf(type)] ?? cast['general-purpose']!
 }
