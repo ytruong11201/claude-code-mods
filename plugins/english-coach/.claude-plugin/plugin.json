@@ -1,0 +1,12 @@
+{
+  "name": "english-coach",
+  "displayName": "English Coach",
+  "version": "0.1.0",
+  "description": "Turns every prompt into English writing practice: a quiet coaching rewrite above the prompt, never sent to Claude",
+  "author": { "name": "ytruong11201", "url": "https://github.com/ytruong11201" },
+  "homepage": "https://github.com/ytruong11201/claude-code-mods/tree/main/plugins/english-coach",
+  "repository": "https://github.com/ytruong11201/claude-code-mods",
+  "license": "MIT",
+  "keywords": ["mod", "english", "writing", "learning"],
+  "types": "./types/index.d.ts"
+}

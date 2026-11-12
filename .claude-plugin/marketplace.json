@@ -7,6 +7,11 @@
       "name": "agent-party",
       "source": "./plugins/agent-party",
       "description": "Running subagents as 16×16 pixel heroes above the prompt, with a voice and two casts"
+    },
+    {
+      "name": "english-coach",
+      "source": "./plugins/english-coach",
+      "description": "English writing practice: a coaching rewrite of every prompt above the prompt box, never sent to Claude"
     }
   ]
 }
